@@ -4,11 +4,11 @@
 
 [![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/a937983423/cloudflare-docker-proxy)
 
-> If you're looking for proxy for helm, maybe you can try [cloudflare-helm-proxy](https://github.com/ciiiii/cloudflare-helm-proxy).
+> 如果你正在为helm寻找代理，也许你可以试试 [cloudflare-helm-proxy](https://github.com/ciiiii/cloudflare-helm-proxy).
 
 ## Deploy
 
-1. click the "Deploy With Workers" button
+1. 点击 "Deploy With Workers" 按钮一件部署
 2. follow the instructions to fork and deploy
 3. update routes as you requirement
 
