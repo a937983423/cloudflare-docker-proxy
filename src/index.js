@@ -1,3 +1,16 @@
+import DOCS from './help.html'  //导入主页说明文件
+
+// return docs
+if (url.pathname === "/") {   //导入路由到/路径
+  return new Response(DOCS, {  //导入文件按照DOC类型处理
+    status: 200,
+    headers: {
+      "content-type": "text/html"
+    }
+  });
+}
+
+
 addEventListener("fetch", (event) => {
   event.passThroughOnException();
   event.respondWith(handleRequest(event.request));
