@@ -1,14 +1,20 @@
+// 导入本地 HTML 文件
 import DOCS from './help.html';
 
+// 注册一个 Fetch 事件监听器，用于拦截所有网络请求
 addEventListener("fetch", (event) => {
+  // 当出现异常时，允许请求继续传递
   event.passThroughOnException();
+  // 使用 handleRequest 函数处理请求
   event.respondWith(handleRequest(event.request));
 });
 
+// 定义 Docker Hub 的 URL
 const dockerHub = "https://registry-1.docker.io";
 
+// 定义路由映射
 const routes = {
-  // production
+  // 生产环境的域名和对应的目标 URL
   "docker.pinguo88.top": dockerHub,
   "quay.pinguo88.top": "https://quay.io",
   "gcr.pinguo88.top": "https://gcr.io",
@@ -18,10 +24,11 @@ const routes = {
   "cloudsmith.pinguo88.top": "https://docker.cloudsmith.io",
   "ecr.pinguo88.top": "https://public.ecr.aws",
 
-  // staging
+  // 测试环境的域名和对应的目标 URL
   "docker-staging.pinguo88.top": dockerHub,
 };
 
+// 根据主机名返回对应的目标 URL
 function routeByHosts(host) {
   if (host in routes) {
     return routes[host];
@@ -32,8 +39,11 @@ function routeByHosts(host) {
   return "";
 }
 
+// 主处理函数，用于处理传入的 HTTP 请求
 async function handleRequest(request) {
   const url = new URL(request.url);
+
+  // 如果请求的路径是根路径，返回 HTML 内容
   if (url.pathname === "/") {
     return new Response(DOCS, {
       status: 200,
@@ -42,6 +52,7 @@ async function handleRequest(request) {
       }
     });
   }
+
   const upstream = routeByHosts(url.hostname);
   if (upstream === "") {
     return new Response(
@@ -53,15 +64,18 @@ async function handleRequest(request) {
       }
     );
   }
+
   const isDockerHub = upstream == dockerHub;
   const authorization = request.headers.get("Authorization");
+
+  // 如果请求的是 Docker V2 API
   if (url.pathname == "/v2/") {
     const newUrl = new URL(upstream + "/v2/");
     const headers = new Headers();
     if (authorization) {
       headers.set("Authorization", authorization);
     }
-    // check if need to authenticate
+    // 检查是否需要身份验证
     const resp = await fetch(newUrl.toString(), {
       method: "GET",
       headers: headers,
@@ -87,7 +101,8 @@ async function handleRequest(request) {
       return resp;
     }
   }
-  // get token
+
+  // 处理 Docker V2 身份验证请求
   if (url.pathname == "/v2/auth") {
     const newUrl = new URL(upstream + "/v2/");
     const resp = await fetch(newUrl.toString(), {
@@ -103,8 +118,8 @@ async function handleRequest(request) {
     }
     const wwwAuthenticate = parseAuthenticate(authenticateStr);
     let scope = url.searchParams.get("scope");
-    // autocomplete repo part into scope for DockerHub library images
-    // Example: repository:busybox:pull => repository:library/busybox:pull
+
+    // 对 DockerHub 的库镜像进行路径自动补全
     if (scope && isDockerHub) {
       let scopeParts = scope.split(":");
       if (scopeParts.length == 3 && !scopeParts[1].includes("/")) {
@@ -114,8 +129,8 @@ async function handleRequest(request) {
     }
     return await fetchToken(wwwAuthenticate, scope, authorization);
   }
-  // redirect for DockerHub library images
-  // Example: /v2/busybox/manifests/latest => /v2/library/busybox/manifests/latest
+
+  // 对 DockerHub 库镜像的路径进行重定向
   if (isDockerHub) {
     const pathParts = url.pathname.split("/");
     if (pathParts.length == 5) {
@@ -125,7 +140,8 @@ async function handleRequest(request) {
       return Response.redirect(redirectUrl, 301);
     }
   }
-  // forward requests
+
+  // 转发请求到上游服务器
   const newUrl = new URL(upstream + url.pathname);
   const newReq = new Request(newUrl, {
     method: request.method,
@@ -135,9 +151,10 @@ async function handleRequest(request) {
   return await fetch(newReq);
 }
 
+// 解析 WWW-Authenticate 头信息
 function parseAuthenticate(authenticateStr) {
-  // sample: Bearer realm="https://auth.ipv6.docker.com/token",service="registry.docker.io"
-  // match strings after =" and before "
+  // 示例: Bearer realm="https://auth.ipv6.docker.com/token",service="registry.docker.io"
+  // 匹配 =" 之后和 " 之前的字符串
   const re = /(?<=\=")(?:\\.|[^"\\])*(?=")/g;
   const matches = authenticateStr.match(re);
   if (matches == null || matches.length < 2) {
@@ -149,6 +166,7 @@ function parseAuthenticate(authenticateStr) {
   };
 }
 
+// 获取身份验证令牌
 async function fetchToken(wwwAuthenticate, scope, authorization) {
   const url = new URL(wwwAuthenticate.realm);
   if (wwwAuthenticate.service.length) {
