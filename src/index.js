@@ -1,15 +1,4 @@
-import DOCS from './help.html'  //导入主页说明文件
-
-// return docs
-if (url.pathname === "/") {   //导入路由到/路径
-  return new Response(DOCS, {  //导入文件按照DOC类型处理
-    status: 200,
-    headers: {
-      "content-type": "text/html"
-    }
-  });
-}
-
+import DOCS from './help.html';
 
 addEventListener("fetch", (event) => {
   event.passThroughOnException();
@@ -45,6 +34,14 @@ function routeByHosts(host) {
 
 async function handleRequest(request) {
   const url = new URL(request.url);
+  if (url.pathname === "/") {
+    return new Response(DOCS, {
+      status: 200,
+      headers: {
+        "content-type": "text/html"
+      }
+    });
+  }
   const upstream = routeByHosts(url.hostname);
   if (upstream === "") {
     return new Response(
@@ -128,7 +125,7 @@ async function handleRequest(request) {
       return Response.redirect(redirectUrl, 301);
     }
   }
-  // foward requests
+  // forward requests
   const newUrl = new URL(upstream + url.pathname);
   const newReq = new Request(newUrl, {
     method: request.method,
@@ -160,7 +157,7 @@ async function fetchToken(wwwAuthenticate, scope, authorization) {
   if (scope) {
     url.searchParams.set("scope", scope);
   }
-  headers = new Headers();
+  const headers = new Headers();
   if (authorization) {
     headers.set("Authorization", authorization);
   }
